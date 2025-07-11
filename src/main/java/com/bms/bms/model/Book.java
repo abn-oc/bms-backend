@@ -27,4 +27,5 @@ public class Book {
     private Integer ISBN;
     private LocalDate Date;
     private String Category;
+    private String ImageURL;
 }

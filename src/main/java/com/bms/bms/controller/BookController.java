@@ -1,10 +1,12 @@
 package com.bms.bms.controller;
 
-import com.bms.bms.dto.BookRequest;
 import com.bms.bms.model.Book;
 import com.bms.bms.repository.BookRepository;
+import com.bms.bms.service.S3Service;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -16,8 +18,10 @@ import java.util.List;
 public class BookController {
 
     private final BookRepository bookRepository;
-    BookController(BookRepository br) {
+    private final S3Service s3Service;
+    BookController(BookRepository br, S3Service S3Service) {
         this.bookRepository = br;
+        this.s3Service = S3Service;
     }
 
     @GetMapping
@@ -37,20 +41,32 @@ public class BookController {
         }
     }
 
-    @PostMapping
-    public String saveBook(@RequestBody BookRequest bookreq) {
-        System.out.println("Adding a Book");
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public String saveBook(
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("image") MultipartFile image,
+            @RequestParam("content") String content,
+            @RequestParam("username") String username,
+            @RequestParam("isbn") Integer isbn,
+            @RequestParam("category") String category
+    ) {
         Book newBook = new Book();
-        newBook.setTitle(bookreq.getTitle());
-        newBook.setDescription(bookreq.getDescription());
-        newBook.setContent(bookreq.getContent());
-        newBook.setUsername(bookreq.getUsername());
-        newBook.setISBN(bookreq.getISBN());
-        newBook.setCategory(bookreq.getCategory());
+        newBook.setTitle(title);
+        newBook.setDescription(description);
+        newBook.setContent(content);
+        newBook.setUsername(username);
+        newBook.setISBN(isbn);
+        newBook.setCategory(category);
         newBook.setDate(LocalDate.now());
-        bookRepository.save(newBook);
-        System.out.println("Added a Book");
-        System.out.println(bookreq);
+        Book uploadedBook = bookRepository.save(newBook);
+        String uploadStatus = s3Service.Upload(image, uploadedBook.getId());
+        if ("Error".equals(uploadStatus)) {
+            bookRepository.deleteById(uploadedBook.getId());
+            return "Error uploading Image. Did NOT add book.";
+        }
+        uploadedBook.setImageURL(uploadStatus);
+        bookRepository.save(uploadedBook);
         return "Added a Book";
     }
 
