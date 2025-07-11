@@ -45,11 +45,11 @@ public class BookController {
     public String saveBook(
             @RequestParam("title") String title,
             @RequestParam("description") String description,
-            @RequestParam("image") MultipartFile image,
             @RequestParam("content") String content,
             @RequestParam("username") String username,
             @RequestParam("isbn") Integer isbn,
-            @RequestParam("category") String category
+            @RequestParam("category") String category,
+            @RequestParam(name = "image", required = false) MultipartFile image
     ) {
         Book newBook = new Book();
         newBook.setTitle(title);
@@ -60,13 +60,16 @@ public class BookController {
         newBook.setCategory(category);
         newBook.setDate(LocalDate.now());
         Book uploadedBook = bookRepository.save(newBook);
-        String uploadStatus = s3Service.Upload(image, uploadedBook.getId());
-        if ("Error".equals(uploadStatus)) {
-            bookRepository.deleteById(uploadedBook.getId());
-            return "Error uploading Image. Did NOT add book.";
+        if (image != null) {
+            String uploadStatus = s3Service.Upload(image, uploadedBook.getId());
+            if ("Error".equals(uploadStatus)) {
+                bookRepository.deleteById(uploadedBook.getId());
+                return "Error uploading Image. Did NOT add book.";
+            }
+            uploadedBook.setImageURL(uploadStatus);
+            bookRepository.save(uploadedBook);
+
         }
-        uploadedBook.setImageURL(uploadStatus);
-        bookRepository.save(uploadedBook);
         return "Added a Book";
     }
 
