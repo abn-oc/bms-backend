@@ -46,8 +46,7 @@ public class S3Service {
 
         s3Client = S3Client.builder()
                 .httpClientBuilder(ApacheHttpClient.builder())
-                .region(Region.of("auto"))
-                .endpointOverride(URI.create(endPoint))
+                .region(Region.of("eu-north-1"))
                 .credentialsProvider(StaticCredentialsProvider.create(credentials))
                 .serviceConfiguration(serviceConfig)
                 .build();
@@ -65,7 +64,7 @@ public class S3Service {
                             .contentType(imageMP.getContentType()),
                     file.toPath());
             file.delete();
-            return (publicURL + "/cover-" + id);
+            return (publicURL + "cover-" + id);
         } catch (Exception e) {
             return null;
         }
