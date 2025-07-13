@@ -67,13 +67,7 @@ public class S3Service {
             file.delete();
             return (publicURL + "/cover-" + id);
         } catch (Exception e) {
-            System.out.println("Error occurred uploading Image:");
-            return "Error";
+            return null;
         }
-    }
-
-    public String getPublicURL(Long id) {
-        return "";
-        // return String.format("https://%s.%s/cover-%d", bucket, endPoint.replace("https://", ""), id);
     }
 }

@@ -10,7 +10,6 @@ public class BmsApplication {
 		SpringApplication.run(BmsApplication.class, args);
 		System.out.println("----------------------------------------");
 		System.out.println("Book Management Server has started...");
-		System.out.println("Visit http://localhost:8080/swagger-ui.html for api docs");
 		System.out.println("----------------------------------------");
 	}
 

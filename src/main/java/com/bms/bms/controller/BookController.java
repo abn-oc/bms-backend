@@ -61,16 +61,15 @@ public class BookController {
         newBook.setDate(LocalDate.now());
         Book uploadedBook = bookRepository.save(newBook);
         if (image != null) {
-            String uploadStatus = s3Service.Upload(image, uploadedBook.getId());
-            if ("Error".equals(uploadStatus)) {
+            String url = s3Service.Upload(image, uploadedBook.getId());
+            if (url == null) {
                 bookRepository.deleteById(uploadedBook.getId());
-                return "Error uploading Image. Did NOT add book.";
+                return "Error. Book NOT Added";
             }
-            uploadedBook.setImageURL(uploadStatus);
+            uploadedBook.setImageURL(url);
             bookRepository.save(uploadedBook);
-
         }
-        return "Added a Book";
+        return "Success. Added a Book";
     }
 
 }
