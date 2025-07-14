@@ -1,42 +1,46 @@
 package com.bms.bms.controller;
 
-import com.bms.bms.model.Book;
-import com.bms.bms.repository.BookRepository;
+import com.bms.bms.dto.LoginResponse;
+import com.bms.bms.dto.LoginUserDto;
+import com.bms.bms.dto.RegisterUserDto;
+import com.bms.bms.model.User;
+import com.bms.bms.service.AuthenticationService;
+import com.bms.bms.service.JwtService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
 
 @RestController
 @Tag(name = "User Routes")
-@RequestMapping("/users/")
+@RequestMapping("/auth")
 public class UserController {
+    private final JwtService jwtService;
 
-    private final BookRepository bookRepository;
+    private final AuthenticationService authenticationService;
 
-    UserController(BookRepository bookRepository) {
-        this.bookRepository = bookRepository;
+    public UserController(JwtService jwtService, AuthenticationService authenticationService) {
+        this.jwtService = jwtService;
+        this.authenticationService = authenticationService;
     }
 
-    @GetMapping("/{username}")
-    public Iterable<Book> getUserBooks(@PathVariable("username") String username, @RequestParam(required = false) String category) {
-        Iterable<Book> allBooks = bookRepository.findAll();
-        List<Book> filtered = new ArrayList<Book>();
-        if (category != null) {
-            allBooks.forEach(book -> {
-                if (book.getUsername().equals(username) && book.getCategory().equals(category)) {
-                    filtered.add(book);
-                }
-            });
-        }
-        else {
-            allBooks.forEach(book -> {
-                if (book.getUsername().equals(username)) {
-                    filtered.add(book);
-                }
-            });
-        }
-        return filtered;
+    @PostMapping("/signup")
+    public ResponseEntity<User> register(@RequestBody RegisterUserDto registerUserDto) {
+        User registeredUser = authenticationService.signup(registerUserDto);
+
+        return ResponseEntity.ok(registeredUser);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> authenticate(@RequestBody LoginUserDto loginUserDto) {
+        User authenticatedUser = authenticationService.authenticate(loginUserDto);
+
+        String jwtToken = jwtService.generateToken(authenticatedUser);
+
+        LoginResponse loginResponse = new LoginResponse();
+        loginResponse.setToken(jwtToken);
+        loginResponse.setExpiresIn(jwtService.getExpirationTime());
+
+        return ResponseEntity.ok(loginResponse);
     }
 }
