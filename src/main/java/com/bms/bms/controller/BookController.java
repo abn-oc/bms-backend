@@ -74,16 +74,16 @@ public class BookController {
     }
 
     @DeleteMapping
-    public String deleteBook(@RequestParam long id, @RequestParam String username) {
+    public String deleteBook(@RequestParam long id) {
         try {
             Optional<Book> toDelO = bookRepository.findById(id);
             if (toDelO.isPresent()) {
                 Book toDel = toDelO.get();
-                if (toDel.getUsername().equals(username)) {
+//                if (toDel.getUsername().equals(username)) {
                     bookRepository.deleteById(id);
                     return "Success. Deleted book";
-                }
-                return "Error. username does'nt match";
+//                }
+//                return "Error. username doesn't match";
             }
             return "Error. Book by given id not found";
         } catch (Exception e) {
@@ -91,28 +91,30 @@ public class BookController {
         }
     }
 
-    @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public String editBook(
-            @RequestParam("id") long id,
-            @RequestParam("title") String title,
-            @RequestParam("description") String description,
-            @RequestParam("content") String content,
-            @RequestParam("username") String username,
-            @RequestParam("isbn") Integer isbn,
-            @RequestParam("category") String category,
+            @PathVariable(name = "id") long id,
+            @RequestParam(name = "title", required = false) String title,
+            @RequestParam(name = "description", required = false) String description,
+            @RequestParam(name = "content", required = false) String content,
+            @RequestParam(name = "isbn", required = false) Integer isbn,
+            @RequestParam(name = "category", required = false) String category,
+            @RequestParam(name = "username", required = false) String username,
             @RequestParam(name = "image", required = false) MultipartFile image
     ) {
+        System.out.println("received:");
+        System.out.println(id + " " + title);
         Book book = bookRepository.findById(id).orElse(null);
         if (book == null) {
             return "Error. Book not found";
         }
-        if (!book.getUsername().equals(username)) {
-            return "Error. Username does'nt match";
-        }
+//        if (!book.getUsername().equals(username)) {
+//            return "Error. Username doesn't match";
+//        }
         book.setTitle(title);
         book.setDescription(description);
         book.setContent(content);
-        book.setUsername(username);
+//        book.setUsername(username);
         book.setISBN(isbn);
         book.setCategory(category);
         if (image != null) {
@@ -127,14 +129,14 @@ public class BookController {
         return "Success. Book updated";
     }
 
-    @PutMapping("/remove-image")
-    public String removeBookImage(@RequestParam long id, @RequestParam String username) {
+    @PutMapping("/remove-image/{id}")
+    public String removeBookImage(@PathVariable long id) {
         Optional<Book> optionalBook = bookRepository.findById(id);
         if (optionalBook.isPresent()) {
             Book book = optionalBook.get();
-            if (!book.getUsername().equals(username)) {
-                return "Error. Username doesn't match";
-            }
+//            if (!book.getUsername().equals(username)) {
+//                return "Error. Username doesn't match";
+//            }
             book.setImageURL(null);
             bookRepository.save(book);
             return "Success. Image removed";
@@ -142,6 +144,4 @@ public class BookController {
             return "Error. Book not found";
         }
     }
-
-
 }
