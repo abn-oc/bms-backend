@@ -79,11 +79,9 @@ public class BookController {
             Optional<Book> toDelO = bookRepository.findById(id);
             if (toDelO.isPresent()) {
                 Book toDel = toDelO.get();
-//                if (toDel.getUsername().equals(username)) {
                     bookRepository.deleteById(id);
+                    s3Service.Delete(id);
                     return "Success. Deleted book";
-//                }
-//                return "Error. username doesn't match";
             }
             return "Error. Book by given id not found";
         } catch (Exception e) {
@@ -108,13 +106,9 @@ public class BookController {
         if (book == null) {
             return "Error. Book not found";
         }
-//        if (!book.getUsername().equals(username)) {
-//            return "Error. Username doesn't match";
-//        }
         book.setTitle(title);
         book.setDescription(description);
         book.setContent(content);
-//        book.setUsername(username);
         book.setISBN(isbn);
         book.setCategory(category);
         if (image != null) {
@@ -134,11 +128,9 @@ public class BookController {
         Optional<Book> optionalBook = bookRepository.findById(id);
         if (optionalBook.isPresent()) {
             Book book = optionalBook.get();
-//            if (!book.getUsername().equals(username)) {
-//                return "Error. Username doesn't match";
-//            }
             book.setImageURL(null);
             bookRepository.save(book);
+            s3Service.Delete(id);
             return "Success. Image removed";
         } else {
             return "Error. Book not found";

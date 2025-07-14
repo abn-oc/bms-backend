@@ -1,5 +1,6 @@
 package com.bms.bms.service;
 
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,7 +13,6 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 
 import java.io.File;
-import java.net.URI;
 
 @Service
 public class S3Service {
@@ -67,6 +67,23 @@ public class S3Service {
             return (publicURL + "cover-" + id);
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    public String Delete(Long id) {
+        initializeClient();
+        try {
+            String key = "cover-" + id;
+            DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build();
+
+            s3Client.deleteObject(deleteRequest);
+
+            return "Success. Deleted Image";
+        } catch (Exception e) {
+            return "Error. Couldn't delete image";
         }
     }
 }
