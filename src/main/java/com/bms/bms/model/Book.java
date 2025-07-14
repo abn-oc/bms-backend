@@ -28,4 +28,5 @@ public class Book {
     private LocalDate Date;
     private String Category;
     private String ImageURL;
+    private String pdfURL;
 }

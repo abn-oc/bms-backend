@@ -52,7 +52,7 @@ public class S3Service {
                 .build();
     }
 
-    public String Upload(MultipartFile imageMP, Long id) {
+    public String UploadImg(MultipartFile imageMP, Long id) {
         initializeClient();
         try {
             File file = File.createTempFile("cover-" + id, null);
@@ -70,7 +70,7 @@ public class S3Service {
         }
     }
 
-    public String Delete(Long id) {
+    public String DeleteImg(Long id) {
         initializeClient();
         try {
             String key = "cover-" + id;
@@ -84,6 +84,47 @@ public class S3Service {
             return "Success. Deleted Image";
         } catch (Exception e) {
             return "Error. Couldn't delete image";
+        }
+    }
+
+    public String uploadPdf(MultipartFile pdfFile, Long id) {
+        initializeClient();
+        try {
+            if (!pdfFile.getOriginalFilename().endsWith(".pdf")) {
+                return "Error. Not a PDF file";
+            }
+
+            File file = File.createTempFile("book-" + id, ".pdf");
+            pdfFile.transferTo(file);
+
+            s3Client.putObject(request -> request
+                            .bucket(bucket)
+                            .key("book-" + id + ".pdf")  // keep .pdf extension
+                            .contentType(pdfFile.getContentType()),
+                    file.toPath());
+
+            file.delete();
+            return publicURL + "book-" + id + ".pdf";
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public String deletePdf(Long id) {
+        initializeClient();
+        try {
+            String key = "book-" + id + ".pdf";
+
+            DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build();
+
+            s3Client.deleteObject(deleteRequest);
+
+            return "Success. Deleted PDF";
+        } catch (Exception e) {
+            return "Error. Couldn't delete PDF";
         }
     }
 }

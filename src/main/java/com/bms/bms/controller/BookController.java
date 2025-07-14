@@ -50,7 +50,8 @@ public class BookController {
             @RequestParam("username") String username,
             @RequestParam("isbn") Integer isbn,
             @RequestParam("category") String category,
-            @RequestParam(name = "image", required = false) MultipartFile image
+            @RequestParam(name = "image", required = false) MultipartFile image,
+            @RequestParam(name = "pdf", required = false) MultipartFile pdf
     ) {
         Book newBook = new Book();
         newBook.setTitle(title);
@@ -60,18 +61,31 @@ public class BookController {
         newBook.setISBN(isbn);
         newBook.setCategory(category);
         newBook.setDate(LocalDate.now());
+
         Book uploadedBook = bookRepository.save(newBook);
+
         if (image != null) {
-            String url = s3Service.Upload(image, uploadedBook.getId());
+            String url = s3Service.UploadImg(image, uploadedBook.getId());
             if (url == null) {
                 bookRepository.deleteById(uploadedBook.getId());
-                return "Error. Book NOT Added";
+                return "Error. Book NOT Added (Image failed)";
             }
             uploadedBook.setImageURL(url);
-            bookRepository.save(uploadedBook);
         }
+
+        if (pdf != null) {
+            String pdfUrl = s3Service.uploadPdf(pdf, uploadedBook.getId());
+            if (pdfUrl == null) {
+                bookRepository.deleteById(uploadedBook.getId());
+                return "Error. Book NOT Added (PDF failed)";
+            }
+            uploadedBook.setPdfURL(pdfUrl);
+        }
+
+        bookRepository.save(uploadedBook);
         return "Success. Added a Book";
     }
+
 
     @DeleteMapping
     public String deleteBook(@RequestParam long id) {
@@ -79,15 +93,17 @@ public class BookController {
             Optional<Book> toDelO = bookRepository.findById(id);
             if (toDelO.isPresent()) {
                 Book toDel = toDelO.get();
-                    bookRepository.deleteById(id);
-                    s3Service.Delete(id);
-                    return "Success. Deleted book";
+                bookRepository.deleteById(id);
+                s3Service.DeleteImg(id);
+                s3Service.deletePdf(id);
+                return "Success. Deleted book";
             }
             return "Error. Book by given id not found";
         } catch (Exception e) {
             return "Error. Couldn't delete book";
         }
     }
+
 
     @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public String editBook(
@@ -98,30 +114,39 @@ public class BookController {
             @RequestParam(name = "isbn", required = false) Integer isbn,
             @RequestParam(name = "category", required = false) String category,
             @RequestParam(name = "username", required = false) String username,
-            @RequestParam(name = "image", required = false) MultipartFile image
+            @RequestParam(name = "image", required = false) MultipartFile image,
+            @RequestParam(name = "pdf", required = false) MultipartFile pdf
     ) {
-        System.out.println("received:");
-        System.out.println(id + " " + title);
         Book book = bookRepository.findById(id).orElse(null);
         if (book == null) {
             return "Error. Book not found";
         }
-        book.setTitle(title);
-        book.setDescription(description);
-        book.setContent(content);
-        book.setISBN(isbn);
-        book.setCategory(category);
+
+        if (title != null) book.setTitle(title);
+        if (description != null) book.setDescription(description);
+        if (content != null) book.setContent(content);
+        if (isbn != null) book.setISBN(isbn);
+        if (category != null) book.setCategory(category);
+        if (username != null) book.setUsername(username);
+
         if (image != null) {
-            String url = s3Service.Upload(image, id);
+            String url = s3Service.UploadImg(image, id);
             if (url == null) {
                 return "Error. Couldn't upload image";
             }
             book.setImageURL(url);
         }
-
+        if (pdf != null) {
+            String url = s3Service.uploadPdf(pdf, id);
+            if (url == null) {
+                return "Error. Couldn't upload pdf";
+            }
+            book.setPdfURL(url);
+        }
         bookRepository.save(book);
         return "Success. Book updated";
     }
+
 
     @PutMapping("/remove-image/{id}")
     public String removeBookImage(@PathVariable long id) {
@@ -130,7 +155,21 @@ public class BookController {
             Book book = optionalBook.get();
             book.setImageURL(null);
             bookRepository.save(book);
-            s3Service.Delete(id);
+            s3Service.DeleteImg(id);
+            return "Success. Image removed";
+        } else {
+            return "Error. Book not found";
+        }
+    }
+
+    @PutMapping("/remove-pdf/{id}")
+    public String removeBookPDF(@PathVariable long id) {
+        Optional<Book> optionalBook = bookRepository.findById(id);
+        if (optionalBook.isPresent()) {
+            Book book = optionalBook.get();
+            book.setPdfURL(null);
+            bookRepository.save(book);
+            s3Service.deletePdf(id);
             return "Success. Image removed";
         } else {
             return "Error. Book not found";
