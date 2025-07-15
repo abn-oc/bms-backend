@@ -42,6 +42,7 @@ public class UserController {
             String jwtToken = jwtService.generateToken(authenticatedUser);
             LoginResponse loginResponse = new LoginResponse();
             loginResponse.setToken(jwtToken);
+            authenticatedUser.setPassword("hidden");
             loginResponse.setUser(authenticatedUser);
             return ResponseEntity.ok(loginResponse);
         }
