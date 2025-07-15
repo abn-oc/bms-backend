@@ -1,13 +1,15 @@
 package com.bms.bms.controller;
 
-import com.bms.bms.dto.LoginResponse;
-import com.bms.bms.dto.LoginUserDto;
-import com.bms.bms.dto.RegisterUserDto;
+import com.bms.bms.dto.*;
 import com.bms.bms.model.User;
+import com.bms.bms.repository.UserRepository;
 import com.bms.bms.service.AuthenticationService;
+import com.bms.bms.service.EmailService;
 import com.bms.bms.service.JwtService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -18,21 +20,46 @@ public class UserController {
 
     private final AuthenticationService authenticationService;
 
-    public UserController(JwtService jwtService, AuthenticationService authenticationService) {
+    private final UserRepository userRepository;
+
+    private final EmailService emailService;
+
+    private final PasswordEncoder passwordEncoder;
+
+    public UserController(JwtService jwtService, AuthenticationService authenticationService, UserRepository userRepository, EmailService emailService, PasswordEncoder passwordEncoder) {
         this.jwtService = jwtService;
         this.authenticationService = authenticationService;
+        this.userRepository = userRepository;
+        this.emailService = emailService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @PostMapping("/auth/signup")
-    public String register(@RequestBody RegisterUserDto registerUserDto) {
-        try {
-            User registeredUser = authenticationService.signup(registerUserDto);
-            return "Success. User Signed up.";
+    public ResponseEntity<String> register(@RequestBody RegisterUserDto registerUserDto) {
+        String email = registerUserDto.getEmail();
+        String username = registerUserDto.getUsername();
+        if (userRepository.findByEmail(email).isPresent()) {
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body("Error: Email already exists");
         }
-        catch (Exception e) {
-            return "Error. Couldn't Sign up";
+        if (userRepository.findByUsername(username).isPresent()) {
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body("Error: Username already exists");
+        }
+        try {
+            authenticationService.signup(registerUserDto);
+            return ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .body("Success: User signed up.");
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error: Couldn't sign up. " + e.getMessage());
         }
     }
+
 
     @PostMapping("/auth/login")
     public ResponseEntity<?> authenticate(@RequestBody LoginUserDto loginUserDto) {
@@ -48,5 +75,35 @@ public class UserController {
         catch (Exception e) {
             return ResponseEntity.status(500).body("Error. Couldn't Login");
         }
+    }
+
+    @PostMapping("/auth/forgot-password")
+    public String forgotPassword(@RequestBody ForgotPasswordDto forgotPasswordDto) {
+        String email = forgotPasswordDto.getEmail();
+        User usr = userRepository.findByEmail(email).orElse(null);
+        if (usr == null) {
+            return "Error. Given email does not belong to any user";
+        }
+        String code = String.format("%06d", Math.abs(email.hashCode()) % 1000000);
+        usr.setResetCode(code);
+        userRepository.save(usr);
+        emailService.sendCodeMail(email, code);
+        return "Success. Sent code via email";
+    }
+
+    // not tested
+    @PostMapping("/auth/reset-password")
+    public String resetPassword(@RequestBody ResetPasswordDto resetPasswordDto) {
+        String code = resetPasswordDto.getCode();
+        String newPassword = resetPasswordDto.getNewPassword();
+        User usr = userRepository.findByResetCode(code).orElse(null);
+        if (usr == null) {
+            return "Error. This code is not associated with any account.";
+        }
+        String hashedPassword = passwordEncoder.encode(newPassword);
+        usr.setPassword(hashedPassword);
+        usr.setResetCode(null);
+        userRepository.save(usr);
+        return "Success. New Password set";
     }
 }
