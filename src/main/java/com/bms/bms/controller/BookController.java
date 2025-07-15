@@ -31,7 +31,7 @@ public class BookController {
 
     private String getCurrentUsername() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return ((User) authentication.getPrincipal()).getUsername();
+        return ((User) authentication.getPrincipal()).getUN();
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
