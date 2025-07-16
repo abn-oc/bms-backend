@@ -180,4 +180,15 @@ public class BookController {
         return result;
     }
 
+    @GetMapping("/search/{query}")
+    public Iterable<Book> searchMyBooks(@PathVariable(required = true) String query) {
+        List<Book> result = new ArrayList<>();
+        bookRepository.findByTitleContainingIgnoreCase(query).forEach(book -> {
+            if (book.getUsername().equals(getCurrentUsername())) {
+                result.add(book);
+            }
+        });
+        return result;
+    }
+
 }

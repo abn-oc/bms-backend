@@ -7,6 +7,7 @@ import lombok.ToString;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -32,6 +33,9 @@ public class User implements UserDetails {
 
     @Column(nullable = true)
     private String resetCode;
+
+    @Column(nullable = true)
+    private LocalDateTime codeGeneratedTime;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

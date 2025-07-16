@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+
 
 @RestController
 @Tag(name = "Auth Routes")
@@ -84,8 +86,13 @@ public class UserController {
         if (usr == null) {
             return "Error. Given email does not belong to any user";
         }
-        String code = String.format("%06d", Math.abs(email.hashCode()) % 1000000);
+        if (usr.getCodeGeneratedTime() != null && usr.getCodeGeneratedTime().isAfter(LocalDateTime.now().minusSeconds(60))) {
+            return "Error. Wait 60 seconds before regenerating code";
+        }
+        String seed = email + System.currentTimeMillis();
+        String code = String.format("%06d", Math.abs(seed.hashCode()) % 1000000);
         usr.setResetCode(code);
+        usr.setCodeGeneratedTime(LocalDateTime.now());
         userRepository.save(usr);
         emailService.sendCodeMail(email, code);
         return "Success. Sent code via email";
@@ -100,9 +107,14 @@ public class UserController {
         if (usr == null) {
             return "Error. This code is not associated with any account.";
         }
+        if (usr.getCodeGeneratedTime() != null &&
+                usr.getCodeGeneratedTime().isBefore(LocalDateTime.now().minusSeconds(60))) {
+            return "Error. This code is expired as its more than 60 seconds old";
+        }
         String hashedPassword = passwordEncoder.encode(newPassword);
         usr.setPassword(hashedPassword);
         usr.setResetCode(null);
+        usr.setCodeGeneratedTime(null);
         userRepository.save(usr);
         return "Success. New Password set";
     }
