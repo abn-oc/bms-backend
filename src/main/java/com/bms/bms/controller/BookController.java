@@ -41,8 +41,8 @@ public class BookController {
             @RequestParam("content") String content,
             @RequestParam("isbn") Integer isbn,
             @RequestParam("category") String category,
-            @RequestParam(name = "image", required = false) MultipartFile image,
-            @RequestParam(name = "pdf", required = false) MultipartFile pdf
+            @RequestParam("image") MultipartFile image,
+            @RequestParam("pdf") MultipartFile pdf
     ) {
         String username = getCurrentUsername();
 
@@ -181,11 +181,13 @@ public class BookController {
     }
 
     @GetMapping("/search/{query}")
-    public Iterable<Book> searchMyBooks(@PathVariable(required = true) String query) {
+    public Iterable<Book> searchMyBooks(@PathVariable(required = true) String query, @RequestParam(required = false) String category) {
         List<Book> result = new ArrayList<>();
         bookRepository.findByTitleContainingIgnoreCase(query).forEach(book -> {
             if (book.getUsername().equals(getCurrentUsername())) {
-                result.add(book);
+                if (category == null || book.getCategory().equals(category)) {
+                    result.add(book);
+                }
             }
         });
         return result;
